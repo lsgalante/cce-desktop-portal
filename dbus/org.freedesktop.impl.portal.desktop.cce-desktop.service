@@ -1,0 +1,6 @@
+# Bus activation for the Settings and Inhibit portal backends: the portal
+# frontend reads Settings from every backend at startup, which starts this.
+# Exec must be absolute (D-Bus expands nothing).
+[D-BUS Service]
+Name=org.freedesktop.impl.portal.desktop.cce-desktop
+Exec=/home/lsgalante/.local/bin/cce-desktop-portal

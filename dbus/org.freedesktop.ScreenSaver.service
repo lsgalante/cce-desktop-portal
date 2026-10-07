@@ -1,0 +1,7 @@
+# Bus activation for org.freedesktop.ScreenSaver, which apps (Steam, browsers,
+# video players) call directly to keep the display awake. The same process
+# serves the portal backend; whichever name is asked for first starts it, and
+# it claims both.
+[D-BUS Service]
+Name=org.freedesktop.ScreenSaver
+Exec=/home/lsgalante/.local/bin/cce-desktop-portal

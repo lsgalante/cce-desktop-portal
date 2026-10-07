@@ -1,0 +1,15 @@
+[package]
+name = "cce-desktop-portal"
+version = "0.1.0"
+edition = "2021"
+description = "Settings and Inhibit portal backends, and org.freedesktop.ScreenSaver, for the cce desktop"
+license = "GPL-3.0-only"
+
+[dependencies]
+zbus = { version = "5", default-features = false, features = ["tokio"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "time"] }
+futures-util = { version = "0.3", default-features = false }
+inotify = "0.11"
+kdl = "4.6"
+log = "0.4"
+env_logger = "0.11"
