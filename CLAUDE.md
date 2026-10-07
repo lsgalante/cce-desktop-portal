@@ -6,7 +6,7 @@ rules.
 
 ## What this is
 
-`cce-desktop-portal` is cce's own backend for two portal interfaces that
+`cce-desktop-portal` is cce's own backend for three portal interfaces that
 used to fall to xdg-desktop-portal-gtk through `default=gtk`, plus the
 `org.freedesktop.ScreenSaver` service apps call directly:
 
@@ -35,6 +35,15 @@ used to fall to xdg-desktop-portal-gtk through `default=gtk`, plus the
   connection goes away. Only the portal's idle (8) and suspend (4) flags
   hold anything; logout and user-switch have nothing to hold in cce.
 
+- **`org.freedesktop.impl.portal.AppChooser`** (`src/app_chooser.rs`) — the
+  "Open with…" dialog. The frontend passes the handler IDs; this runs
+  `cce-cloud --choose -p "Open <file> with: " [-s <last_choice>]` with the IDs
+  on stdin (cce-cloud's chooser mode shows each entry's name and icon and
+  prints the picked ID — see its CLAUDE.md) and answers `{choice: <id>}`, or
+  cancelled on Escape. The request's `Close` kills the cce-cloud client; the
+  cce-cloud daemon closes a popup whose client hung up. `UpdateChoices` is
+  only logged. `CCE_CHOOSER_BIN` points a run at another cce-cloud build.
+
 `idle status` names holders as `portal:<who>`.
 
 ## Lifecycle
@@ -56,8 +65,9 @@ does, so the bus activation environment must carry it (startcce imports it).
 - `portals/cce-desktop.portal` → `$XDG_DATA_HOME/xdg-desktop-portal/portals/`
 - `dbus/*.service` → `~/.local/share/dbus-1/services/` (absolute `Exec`)
 - **`~/.config/xdg-desktop-portal/cce-portals.conf`** (user config, not
-  versioned) must say `org.freedesktop.impl.portal.Settings=cce-desktop;gtk`
-  and `org.freedesktop.impl.portal.Inhibit=cce-desktop`.
+  versioned) must say `org.freedesktop.impl.portal.Settings=cce-desktop;gtk`,
+  `org.freedesktop.impl.portal.Inhibit=cce-desktop` and
+  `org.freedesktop.impl.portal.AppChooser=cce-desktop`.
 
 The frontend reads portal files and the conf at startup. Restarting it
 (`systemctl --user restart xdg-desktop-portal`) drops every app's portal
@@ -79,3 +89,12 @@ the live one, run a private `dbus-run-session` with this backend,
 `XDG_CONFIG_HOME` holding a test `cce-portals.conf`, and kill everything
 the private bus activated afterwards (cce-shortcuts-portal attaches to the
 shadow and keeps `dbus-run-session` alive).
+
+The chooser can be driven end to end the same way, never on the live bus:
+a private `dbus-run-session` running this backend with
+`WAYLAND_DISPLAY=<shadow's>` and `CCE_CHOOSER_BIN=<tree cce-cloud>`, a
+`gdbus call … AppChooser.ChooseApplication /test/r/1 app "" "['gimp',…]"
+"{'filename': <'/x/a.pdf'>}"` in the background, then `cce-shadow ctl
+keypress` (108 Down, 28 Enter, 1 Escape) and read gdbus's reply. cce-cloud's
+client socket is keyed by `WAYLAND_DISPLAY`, so a shadow's chooser runs
+standalone (or under a shadow daemon) and never reaches the live one.
