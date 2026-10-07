@@ -1,16 +1,19 @@
-//! cce-desktop-portal — the cce desktop's own `Settings` and `Inhibit` portal
-//! backends, and `org.freedesktop.ScreenSaver`.
+//! cce-desktop-portal — the cce desktop's own `Settings`, `Inhibit` and
+//! `AppChooser` portal backends, and `org.freedesktop.ScreenSaver`.
 //!
-//! Both interfaces used to fall to xdg-desktop-portal-gtk (`default=gtk` in
+//! Settings and Inhibit used to fall to xdg-desktop-portal-gtk (`default=gtk` in
 //! `cce-portals.conf`): Settings published GNOME's GSettings rather than cce's
 //! config, and Inhibit forwarded to session services no cce session runs, so
-//! it silently did nothing. See `settings.rs` and `inhibit.rs`.
+//! it silently did nothing. AppChooser ("Open with…") was a GTK window; it is
+//! now cce-cloud's chooser mode. See `settings.rs`, `inhibit.rs` and
+//! `app_chooser.rs`.
 //!
 //! One bus-activated process owns both names; whichever is asked for first
 //! starts it. It lives for the session — Settings has to be there to signal
 //! changes — and costs nothing at rest: config changes arrive by inotify,
 //! and the lease-renewal loop sleeps while nothing is held.
 
+mod app_chooser;
 mod inhibit;
 mod settings;
 
@@ -52,6 +55,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let conn = zbus::connection::Builder::session()?
         .serve_at(PORTAL_PATH, settings::SettingsPortal { state: appearance.clone() })?
         .serve_at(PORTAL_PATH, inhibit::InhibitPortal { inhibitor: inhibitor.clone() })?
+        .serve_at(PORTAL_PATH, app_chooser::AppChooser::default())?
         // Both paths are in use in the wild (KDE answered at /ScreenSaver).
         .serve_at("/org/freedesktop/ScreenSaver", screensaver(&inhibitor))?
         .serve_at("/ScreenSaver", screensaver(&inhibitor))?
