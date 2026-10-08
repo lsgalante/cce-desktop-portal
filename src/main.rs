@@ -1,12 +1,15 @@
-//! cce-desktop-portal — the cce desktop's own `Settings`, `Inhibit` and
-//! `AppChooser` portal backends, and `org.freedesktop.ScreenSaver`.
+//! cce-desktop-portal — the cce desktop's own `Settings`, `Inhibit`,
+//! `AppChooser` and `Notification` portal backends, and
+//! `org.freedesktop.ScreenSaver`.
 //!
 //! Settings and Inhibit used to fall to xdg-desktop-portal-gtk (`default=gtk` in
 //! `cce-portals.conf`): Settings published GNOME's GSettings rather than cce's
 //! config, and Inhibit forwarded to session services no cce session runs, so
 //! it silently did nothing. AppChooser ("Open with…") was a GTK window; it is
-//! now cce-cloud's chooser mode. See `settings.rs`, `inhibit.rs` and
-//! `app_chooser.rs`.
+//! now cce-cloud's chooser mode. Notification forwarded to cce-notifier
+//! through gtk, which kept the text and lost the actions; it now maps them
+//! both ways. See `settings.rs`, `inhibit.rs`, `app_chooser.rs` and
+//! `notification.rs`.
 //!
 //! One bus-activated process owns both names; whichever is asked for first
 //! starts it. It lives for the session — Settings has to be there to signal
@@ -15,6 +18,7 @@
 
 mod app_chooser;
 mod inhibit;
+mod notification;
 mod settings;
 
 use std::sync::Arc;
@@ -41,6 +45,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let appearance = Arc::new(RwLock::new(settings::load(&settings::config_path())));
     log::info!("appearance: {:?}", *appearance.read().await);
     let inhibitor = inhibit::Inhibitor::new();
+    let cards = notification::SharedCards::default();
 
     // Leases a predecessor held die with it here rather than after their
     // ttl. An older compositor answers an error; external inhibitors then
@@ -56,6 +61,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         .serve_at(PORTAL_PATH, settings::SettingsPortal { state: appearance.clone() })?
         .serve_at(PORTAL_PATH, inhibit::InhibitPortal { inhibitor: inhibitor.clone() })?
         .serve_at(PORTAL_PATH, app_chooser::AppChooser::default())?
+        .serve_at(PORTAL_PATH, notification::NotificationPortal { cards: cards.clone() })?
         // Both paths are in use in the wild (KDE answered at /ScreenSaver).
         .serve_at("/org/freedesktop/ScreenSaver", screensaver(&inhibitor))?
         .serve_at("/ScreenSaver", screensaver(&inhibitor))?
@@ -80,6 +86,14 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     log::info!("serving {PORTAL_NAME} and {SCREENSAVER_NAME}");
 
     tokio::spawn(inhibitor.clone().renew_loop());
+    {
+        let conn = conn.clone();
+        tokio::spawn(async move {
+            if let Err(e) = notification::relay(conn, PORTAL_PATH, cards).await {
+                log::error!("notification relay stopped: {e}");
+            }
+        });
+    }
     {
         let (conn, appearance) = (conn.clone(), appearance.clone());
         tokio::spawn(async move {

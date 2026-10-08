@@ -6,7 +6,7 @@ rules.
 
 ## What this is
 
-`cce-desktop-portal` is cce's own backend for three portal interfaces that
+`cce-desktop-portal` is cce's own backend for four portal interfaces that
 used to fall to xdg-desktop-portal-gtk through `default=gtk`, plus the
 `org.freedesktop.ScreenSaver` service apps call directly:
 
@@ -43,6 +43,16 @@ used to fall to xdg-desktop-portal-gtk through `default=gtk`, plus the
   cancelled on Escape. The request's `Close` kills the cce-cloud client; the
   cce-cloud daemon closes a popup whose client hung up. `UpdateChoices` is
   only logged. `CCE_CHOOSER_BIN` points a run at another cce-cloud build.
+- **`org.freedesktop.impl.portal.Notification`** (`src/notification.rs`) —
+  portal notifications as cce-notifier cards: `AddNotification` becomes
+  `Notify` on `org.freedesktop.Notifications` (desktop-entry name as
+  app_name, `markup-body` stripped, the icon as a theme name or a file under
+  `$XDG_RUNTIME_DIR/cce-desktop-portal/` for bytes/fd icons, `priority` →
+  urgency, `default-action` as the `default` key and buttons as `b<i>`);
+  the server's `ActionInvoked` comes back through those keys as the
+  portal's `ActionInvoked(app_id, id, action, [target])`. Needs cce-notifier
+  with actions and signals (its `feat: clickable cards…` commit) — before
+  that, cards dropped every action.
 
 `idle status` names holders as `portal:<who>`.
 
@@ -66,8 +76,9 @@ does, so the bus activation environment must carry it (startcce imports it).
 - `dbus/*.service` → `~/.local/share/dbus-1/services/` (absolute `Exec`)
 - **`~/.config/xdg-desktop-portal/cce-portals.conf`** (user config, not
   versioned) must say `org.freedesktop.impl.portal.Settings=cce-desktop;gtk`,
-  `org.freedesktop.impl.portal.Inhibit=cce-desktop` and
-  `org.freedesktop.impl.portal.AppChooser=cce-desktop`.
+  `org.freedesktop.impl.portal.Inhibit=cce-desktop`,
+  `org.freedesktop.impl.portal.AppChooser=cce-desktop` and
+  `org.freedesktop.impl.portal.Notification=cce-desktop`.
 
 The frontend reads portal files and the conf at startup. Restarting it
 (`systemctl --user restart xdg-desktop-portal`) drops every app's portal
@@ -98,3 +109,12 @@ a private `dbus-run-session` running this backend with
 keypress` (108 Down, 28 Enter, 1 Escape) and read gdbus's reply. cce-cloud's
 client socket is keyed by `WAYLAND_DISPLAY`, so a shadow's chooser runs
 standalone (or under a shadow daemon) and never reaches the live one.
+
+Notifications the same way: the private bus also runs a tree
+`cce-notifier` (it owns `org.freedesktop.Notifications` there, so the live
+one is never asked), `gdbus monitor --dest` each name into a file, post
+with `AddNotification`, and click the cards with `cce-shadow ctl
+pointer-move-to` / `pointer-click [right]`. The notifier reads the real
+config, so its bell may sound. When cleaning up, match the private bus by
+its socket path in `/proc/<pid>/environ` — a `pkill -f` on that path also
+matches the shell running it.
