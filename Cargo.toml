@@ -11,5 +11,6 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-uti
 futures-util = { version = "0.3", default-features = false }
 inotify = "0.11"
 kdl = "4.6"
+serde_json = "1"
 log = "0.4"
 env_logger = "0.11"

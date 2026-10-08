@@ -6,7 +6,7 @@ rules.
 
 ## What this is
 
-`cce-desktop-portal` is cce's own backend for four portal interfaces that
+`cce-desktop-portal` is cce's own backend for five portal interfaces that
 used to fall to xdg-desktop-portal-gtk through `default=gtk`, plus the
 `org.freedesktop.ScreenSaver` service apps call directly:
 
@@ -53,6 +53,22 @@ used to fall to xdg-desktop-portal-gtk through `default=gtk`, plus the
   portal's `ActionInvoked(app_id, id, action, [target])`. Needs cce-notifier
   with actions and signals (its `feat: clickable cards…` commit) — before
   that, cards dropped every action.
+- **`org.freedesktop.impl.portal.Print`** (`src/print.rs`) — the dialog is a
+  `cce-cloud --json` panel: a destination list ("Save as PDF", then each
+  CUPS queue from `lpstat -e`, default first) leading to one options page
+  per destination (copies, all pages / from–to, two-sided where `lpoptions
+  -l` shows a Duplex option), each ending in its own `print:<i>` button —
+  the panel reports only the closing button and every control's value, so
+  per-destination pages and `<i>.`-prefixed ids are what say which
+  destination was chosen. `PreparePrint` answers GtkPrintSettings (ranges
+  0-based) and a token; `Print` with that token sends the fd's document
+  with `lp -d … -n … [-o sides=two-sided-long-edge]` (ranges are already
+  rendered by the app), or for Save as PDF copies it to the path
+  `cce-files --save` returned. A `Print` without a token asks first.
+  `CCE_PRINT_DRY_RUN` logs the `lp` command instead of running it;
+  `CCE_FILES_BIN` swaps the save dialog (a stub that echoes a path is how
+  the save branch is tested — typing `/` in cce-files opens its location
+  search, so a path cannot be typed into its name box).
 
 `idle status` names holders as `portal:<who>`.
 

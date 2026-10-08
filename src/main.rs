@@ -1,5 +1,5 @@
 //! cce-desktop-portal — the cce desktop's own `Settings`, `Inhibit`,
-//! `AppChooser` and `Notification` portal backends, and
+//! `AppChooser`, `Notification` and `Print` portal backends, and
 //! `org.freedesktop.ScreenSaver`.
 //!
 //! Settings and Inhibit used to fall to xdg-desktop-portal-gtk (`default=gtk` in
@@ -8,8 +8,9 @@
 //! it silently did nothing. AppChooser ("Open with…") was a GTK window; it is
 //! now cce-cloud's chooser mode. Notification forwarded to cce-notifier
 //! through gtk, which kept the text and lost the actions; it now maps them
-//! both ways. See `settings.rs`, `inhibit.rs`, `app_chooser.rs` and
-//! `notification.rs`.
+//! both ways. Print was a GTK dialog; it is a cce-cloud panel sending to CUPS.
+//! See `settings.rs`, `inhibit.rs`, `app_chooser.rs`, `notification.rs` and
+//! `print.rs`.
 //!
 //! One bus-activated process owns both names; whichever is asked for first
 //! starts it. It lives for the session — Settings has to be there to signal
@@ -19,6 +20,7 @@
 mod app_chooser;
 mod inhibit;
 mod notification;
+mod print;
 mod settings;
 
 use std::sync::Arc;
@@ -62,6 +64,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         .serve_at(PORTAL_PATH, inhibit::InhibitPortal { inhibitor: inhibitor.clone() })?
         .serve_at(PORTAL_PATH, app_chooser::AppChooser::default())?
         .serve_at(PORTAL_PATH, notification::NotificationPortal { cards: cards.clone() })?
+        .serve_at(PORTAL_PATH, print::PrintPortal::default())?
         // Both paths are in use in the wild (KDE answered at /ScreenSaver).
         .serve_at("/org/freedesktop/ScreenSaver", screensaver(&inhibitor))?
         .serve_at("/ScreenSaver", screensaver(&inhibitor))?
