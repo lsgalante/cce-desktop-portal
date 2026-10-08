@@ -68,7 +68,12 @@ used to fall to xdg-desktop-portal-gtk through `default=gtk`, plus the
   `CCE_PRINT_DRY_RUN` logs the `lp` command instead of running it;
   `CCE_FILES_BIN` swaps the save dialog (a stub that echoes a path is how
   the save branch is tested — typing `/` in cce-files opens its location
-  search, so a path cannot be typed into its name box).
+  search, so a path cannot be typed into its name box). The CUPS branch
+  was verified against a cups-pdf queue (`sudo lpadmin -p cce-test-pdf -E
+  -v cups-pdf:/ -m CUPS-PDF_opt.ppd`; output in
+  `/var/spool/cups-pdf/$USER/`): 2 copies came out as a 2-page PDF titled
+  after the job. cups-pdf has no Duplex option, so its page shows no
+  two-sided box.
 
 `idle status` names holders as `portal:<who>`.
 
