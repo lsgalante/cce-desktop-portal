@@ -19,6 +19,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use cce_core::ipc::ctl::{IdleRequest, Request};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::{Mutex, Notify};
 use zbus::message::Header;
@@ -39,16 +40,14 @@ const FLAG_IDLE: u32 = 8;
 // ── compositor control socket ──────────────────────────────────────────────
 
 fn ctl_socket_path() -> String {
-    match std::env::var("WAYLAND_DISPLAY").ok().filter(|d| !d.is_empty()) {
-        Some(d) => format!("/tmp/cce-{d}.sock"),
-        None => "/tmp/cce.sock".to_string(),
-    }
+    cce_core::ipc::ctl::control_socket()
 }
 
 /// One request/reply round; the compositor answers one line and closes.
-pub async fn ctl(cmd: &str) -> std::io::Result<String> {
+/// The line is cce-core's `ctl::Request`, the grammar the compositor parses.
+pub async fn ctl(req: &Request) -> std::io::Result<String> {
     let mut stream = tokio::net::UnixStream::connect(ctl_socket_path()).await?;
-    stream.write_all(format!("{cmd}\n").as_bytes()).await?;
+    stream.write_all(format!("{req}\n").as_bytes()).await?;
     let mut reply = String::new();
     stream.read_to_string(&mut reply).await?;
     Ok(reply)
@@ -102,14 +101,15 @@ impl Inhibitor {
     async fn release(&self, token: &str) {
         if self.reg.lock().await.holders.remove(token).is_some() {
             log::info!("release {token}");
-            if let Err(e) = ctl(&format!("idle uninhibit {token}")).await {
+            if let Err(e) = ctl(&Request::Idle(IdleRequest::Uninhibit { token: token.to_string() })).await {
                 log::warn!("control socket: {e}");
             }
         }
     }
 
     async fn send_lease(&self, token: &str, who: &str) {
-        match ctl(&format!("idle inhibit {token} {LEASE_TTL_S} {who}")).await {
+        let lease = IdleRequest::Inhibit { token: token.to_string(), ttl_s: LEASE_TTL_S, who: who.to_string() };
+        match ctl(&Request::Idle(lease)).await {
             Ok(reply) if reply.starts_with("ok") => {}
             Ok(reply) => {
                 let mut reg = self.reg.lock().await;
@@ -316,13 +316,13 @@ impl ScreenSaver {
     /// and wakes darkened displays. Older players call this on a timer
     /// instead of inhibiting.
     async fn simulate_user_activity(&self) {
-        if let Err(e) = ctl("idle wake").await {
+        if let Err(e) = ctl(&Request::Idle(IdleRequest::Wake)).await {
             log::warn!("control socket: {e}");
         }
     }
 
     async fn lock(&self) {
-        if let Err(e) = ctl("lock").await {
+        if let Err(e) = ctl(&Request::Lock).await {
             log::warn!("control socket: {e}");
         }
     }

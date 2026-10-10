@@ -126,9 +126,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
+name = "cce-core"
+version = "0.1.0"
+source = "git+https://github.com/lsgalante/cce-core.git?rev=0adfe0bb400d4ac7e85f4ab36145dda3f346fcd4#0adfe0bb400d4ac7e85f4ab36145dda3f346fcd4"
+dependencies = [
+ "libc",
+ "log",
+ "web-time",
+]
+
+[[package]]
 name = "cce-desktop-portal"
 version = "0.1.0"
 dependencies = [
+ "cce-core",
  "env_logger",
  "futures-util",
  "inotify",
@@ -1001,6 +1012,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23f0c9c52aa7cd7d77769a4cfe2a9adb1b331f489a41d912ce14513d5ab995c6"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "web-time"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a6580f308b1fad9207618087a65c04e7a10bc77e02c8e84e9b00dd4b12fa0bb"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
 ]
 
 [[package]]

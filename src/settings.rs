@@ -78,9 +78,9 @@ pub fn config_path() -> PathBuf {
     base.join("cce").join("config.kdl")
 }
 
-/// The animations switch's state file (cce-ui `motion`, written as root by
+/// The animations switch's state file (cce-core `plan`, written as root by
 /// cce-power-apply). Missing means on.
-pub const ANIMATIONS_FILE: &str = "/run/cce/animations";
+pub const ANIMATIONS_FILE: &str = cce_core::plan::ANIMATIONS_PATH;
 
 /// `color-scheme` and `accent-color` from config.kdl's `style { }` block.
 /// Anything unreadable falls back to the defaults, never to an error: a

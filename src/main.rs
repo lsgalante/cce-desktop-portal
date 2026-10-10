@@ -52,7 +52,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Leases a predecessor held die with it here rather than after their
     // ttl. An older compositor answers an error; external inhibitors then
     // wait for a newer one (see `Inhibitor::send_lease`).
-    match inhibit::ctl("idle inhibit-clear").await {
+    match inhibit::ctl(&cce_core::ipc::ctl::Request::Idle(cce_core::ipc::ctl::IdleRequest::InhibitClear)).await {
         Ok(r) if r.starts_with("ok") => {}
         Ok(r) => log::warn!("compositor has no external inhibitors yet: {}", r.trim()),
         Err(e) => log::warn!("compositor control socket: {e}"),
