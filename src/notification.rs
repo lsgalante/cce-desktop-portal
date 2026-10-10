@@ -181,33 +181,12 @@ fn buttons_of(n: &HashMap<String, OwnedValue>) -> Vec<(String, String, Option<Ow
 /// `Name=` and `Icon=` of the app's desktop entry, from the first
 /// applications dir that has `<app_id>.desktop`.
 fn desktop_entry(app_id: &str) -> (Option<String>, Option<String>) {
-    if app_id.is_empty() {
+    use cce_core::desktop_entry::{find, DesktopEntry};
+    if app_id.is_empty() || app_id.contains('/') {
         return (None, None);
     }
-    let home_data = std::env::var_os("XDG_DATA_HOME")
-        .filter(|v| !v.is_empty())
-        .map(std::path::PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join(".local/share")));
-    let data_dirs = std::env::var("XDG_DATA_DIRS").ok().filter(|v| !v.is_empty()).unwrap_or_else(|| "/usr/local/share:/usr/share".into());
-    let dirs = home_data.into_iter().chain(std::env::split_paths(&data_dirs));
-    for dir in dirs {
-        let Ok(text) = std::fs::read_to_string(dir.join("applications").join(format!("{app_id}.desktop"))) else { continue };
-        let (mut name, mut icon) = (None, None);
-        let mut in_entry = false;
-        for line in text.lines().map(str::trim) {
-            if line.starts_with('[') {
-                in_entry = line == "[Desktop Entry]";
-            } else if in_entry {
-                if let Some(v) = line.strip_prefix("Name=") {
-                    name.get_or_insert_with(|| v.to_string());
-                } else if let Some(v) = line.strip_prefix("Icon=") {
-                    icon.get_or_insert_with(|| v.to_string());
-                }
-            }
-        }
-        return (name, icon);
-    }
-    (None, None)
+    let Some(entry) = find(app_id).and_then(|p| DesktopEntry::read(&p)) else { return (None, None) };
+    (entry.get("Name").map(str::to_string), entry.get("Icon").map(str::to_string))
 }
 
 /// The fdo `actions` list for a card: `default` first, then `b<i>` per
