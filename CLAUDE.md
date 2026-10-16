@@ -12,7 +12,9 @@ used to fall to xdg-desktop-portal-gtk through `default=gtk`, plus the
 
 - **`org.freedesktop.impl.portal.Settings`** (`src/settings.rs`) — the
   `org.freedesktop.appearance` namespace from cce's config instead of GNOME's
-  GSettings: `color-scheme` from `style { color_scheme }` (absent = dark),
+  GSettings: `color-scheme` from `style { color_scheme }` (absent = dark;
+  the system-interface Appearance page writes it, and cce-browser's default
+  "Follow System" page scheme reads it back from here),
   `accent-color` from `style { highlight primary }`, `reduced-motion` from the
   animations switch `/run/cce/animations`, `contrast` always normal. Only that
   namespace: the frontend merges every backend `cce-portals.conf` lists for
