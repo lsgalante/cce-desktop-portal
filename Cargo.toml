@@ -8,7 +8,7 @@ license = "GPL-3.0-only"
 [dependencies]
 # The control socket's name and request lines (ipc::ctl) and the /run/cce
 # plan files (plan); GUI-free, without the KDL config.
-cce-core = { git = "https://github.com/lsgalante/cce-core.git", rev = "cfe7a9307866896bdd1dd4319c44a6cb6f33db21", default-features = false }
+cce-core = { git = "https://github.com/lsgalante/cce-core.git", rev = "f854e8f4b4fc2c9b32f9d37a75f028a41550667b", default-features = false }
 zbus = { version = "5", default-features = false, features = ["tokio"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "time"] }
 futures-util = { version = "0.3", default-features = false }
